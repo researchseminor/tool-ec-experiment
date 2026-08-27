@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Facsan online</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --color1:#f1f0f0; --color2:#111; --color3:#CFCECA;
+      --bg:#fff; --text:#111; --radius:8px;
+      font-family:'Noto Sans JP',sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--color3);color:var(--text)}
+    .wrap{max-width:980px;margin:24px auto;background:var(--bg);padding:20px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{padding:.2em 0;margin:0;font-size:24px;font-weight:700;background:none;box-shadow:none;}
+    h2{margin:8px 0 12px}
+    h3{margin:0 0 10px}
+    button{background:var(--color2);color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;font-weight:700}
+    button[disabled]{opacity:.5;cursor:not-allowed}
+    .muted{color:#555;font-size:13px}
+
+    #points-display{
+      position:fixed;top:18px;right:18px;background:var(--color1);
+      border:2px solid #111;padding:10px 14px;border-radius:10px;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:450;display:none;
+    }
+
+    .view{display:none}
+    .view.active{display:block}
+
+    .start-area{text-align:center;padding:8px 0 16px;border-radius:var(--radius)}
+    .start-area button{font-size:20px;padding:14px 26px;margin-top:14px}
+
+    
+    /* 注意事項 */
+    .start-notice{
+      margin:18px auto 0;
+      max-width:720px;
+      text-align:left;
+      background:#fafafa;
+      border:1px solid #ddd;
+      border-radius:10px;
+      padding:12px 14px;
+      line-height:1.7;
+      font-size:14px;
+    }
+    .start-notice-title{
+      font-size:18px; /* スタート(20px)より小さく */
+      font-weight:700;
+      margin:0 0 6px 0;
+      text-align:center;
+    }
+    .start-notice ul{margin:0;padding-left:1.2em}
+    .start-notice li{margin:2px 0}
+
+    /* ===== 専用カルーセル ===== */
+    .ecx-carousel{
+      width:100%;
+      margin:0 auto 10px;
+      position:relative;
+      overflow:hidden;
+      padding:16px 0 26px;
+      user-select:none;
+    }
+    .ecx-viewport{overflow:hidden;width:100%}
+    .ecx-track{
+      display:flex;align-items:center;
+      will-change:transform;transition:transform .55s ease;
+    }
+
+    /* PC基準 */
+    .ecx-slide{
+      flex:0 0 76%;
+      margin:0 1.5%;
+      transform:scale(.78);
+      opacity:.58;
+      transition:transform .55s ease, opacity .55s ease;
+    }
+    .ecx-slide.ecx-active{transform:scale(1);opacity:1}
+    .ecx-card{
+      width:100%;border-radius:24px;overflow:hidden;background:#ececec;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);aspect-ratio:16 / 7.4;
+    }
+    .ecx-card img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:cover;
+      object-position:center;
+    }
+
+    .ecx-arrow{
+      position:absolute;top:50%;transform:translateY(-58%);
+      width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.95);color:#222;border:none;
+      box-shadow:0 3px 10px rgba(0,0,0,.12);font-size:28px;line-height:1;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;z-index:10;
+    }
+    .ecx-arrow.ecx-prev{left:2.4%}
+    .ecx-arrow.ecx-next{right:2.4%}
+
+    /* ドット: 8px & gap 8px */
+    .ecx-dots{
+      position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+      display:flex;gap:8px;align-items:center;justify-content:center;
+    }
+    .ecx-dot{
+      width:8px;height:8px;border-radius:50%;
+      border:none;background:#c7c7c7;cursor:pointer;padding:0;
+    }
+    .ecx-dot.ecx-active{background:#1f1f1f}
+
+    .points-panel{
+      position:fixed;inset:0;background:#fff;display:none;align-items:center;justify-content:center;z-index:1000
+    }
+    .points-panel>div{font-size:32px;font-weight:700;text-align:center;position:relative}
+    .points-panel>div strong{display:block;font-size:64px;color:#4285f4;margin-top:15px}
+    .points-panel .close{
+      position:absolute;bottom:-50px;left:50%;transform:translateX(-50%);
+      background:#eee;border:none;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer;color:#111
+    }
+
+    .categories{margin-top:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .cat-card{background:var(--color1);border:2px solid #111;padding:16px;border-radius:8px;cursor:pointer}
+    .cat-image{width:100%;height:120px;background:var(--color3);border-radius:6px;margin-bottom:8px;background-size:cover;background-position:center}
+    .cat-title{font-weight:700;display:flex;justify-content:space-between;align-items:center}
+    .cat-products{margin-top:10px;display:none;padding:8px;background:#fff;border-radius:6px;border:1px solid #111}
+    .product-item{padding:6px 8px;border-bottom:1px dashed rgba(0,0,0,.08);display:flex;justify-content:space-between;align-items:center}
+    .product-item:last-child{border-bottom:none}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:600}
+    .modal{background:#fff;padding:16px;border-radius:8px;width:380px;max-width:90%;border:2px solid #111}
+    .modal-image{width:100%;height:200px;background:var(--color3);border-radius:6px;margin-bottom:12px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#777}
+    .quantity-selector{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:10px}
+    .quantity-selector button{padding:6px 12px;font-size:16px;min-width:40px}
+    .quantity-selector span{font-size:18px;font-weight:700;min-width:40px;text-align:center}
+    .modal-actions{margin-top:12px;display:flex;justify-content:space-between;gap:8px}
+    .back-btn{background:#fff;color:#111;border:1px solid #111}
+    .points-status{margin-top:10px;padding:8px;border:1px solid #111;border-radius:6px;background:var(--color1);font-weight:700;text-align:center}
+
+    .cart-btn{
+      position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111;color:#fff;
+      padding:12px 18px;border-radius:999px;display:none;z-index:400;min-width:180px;text-align:center
+    }
+
+    .cart-view{padding:12px;background:var(--color1);border-radius:8px;margin-top:16px}
+    .cart-list{max-height:300px;overflow:auto;border:1px solid rgba(0,0,0,.08);padding:8px;border-radius:6px;background:#fff}
+    .cart-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px dashed rgba(0,0,0,.08)}
+    .cart-row:last-child{border-bottom:none}
+    .cart-actions{margin-top:12px;display:flex;justify-content:space-between;gap:8px}
+
+    .panel{padding:14px;background:var(--color1);border-radius:8px;border:1px solid #111;margin-bottom:12px}
+    .field{margin:10px 0}
+    .field input[type="text"]{
+      width:100%;padding:10px;border:2px solid #111;border-radius:6px;font-size:16px;background:#fff;
+    }
+
+    .radio-row{display:flex;gap:14px;flex-wrap:wrap}
+    .radio-row label{
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid #111;border-radius:999px;padding:10px 14px;
+      background:#fff;font-size:16px;font-weight:700;cursor:pointer;
+    }
+    .radio-row input[type="radio"]{width:20px;height:20px;accent-color:#111}
+
+    .sd-block{margin:18px 0;padding:12px;border:1px solid #111;border-radius:8px;background:#fff}
+    .sd-title{font-weight:700;margin-bottom:8px}
+    .sd-scale-wrap{display:grid;grid-template-columns:max-content auto max-content;align-items:center;gap:6px}
+    .sd-left,.sd-right{font-size:13px;color:#444;white-space:nowrap}
+    .sd-scale{display:flex;gap:4px;align-items:center;justify-content:center}
+    .sd-scale label{
+      display:flex;flex-direction:column;align-items:center;gap:2px;
+      font-size:12px;min-width:36px;cursor:pointer;padding:4px 2px;
+    }
+    .sd-scale input[type="radio"]{width:20px;height:20px;accent-color:#111}
+
+    #submit-survey{width:100%;font-size:18px;padding:14px 18px;border-radius:10px}
+    .final-msg{display:none;padding:18px;text-align:center;font-weight:700;margin-top:16px}
+    footer{margin-top:20px;text-align:right;color:#666;font-size:13px}
+
+    @media (max-width:720px){
+      .categories{grid-template-columns:1fr}
+      .sd-scale-wrap{grid-template-columns:1fr;gap:4px}
+      .sd-scale-wrap .sd-left,.sd-scale-wrap .sd-right{display:none}
+      .sd-scale-wrap::before{
+        content: attr(data-mobile-lr);
+        display:block;text-align:center;font-size:12px;line-height:1.2;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#444;
+      }
+      .sd-scale{justify-content:space-between;gap:2px}
+      .sd-scale label{min-width:28px;padding:2px 0;font-size:10px}
+      .sd-scale input[type="radio"]{width:20px;height:20px}
+
+      /* 指示どおり82% + 1.2%余白 */
+      .ecx-carousel {position: relative;width: 100%;overflow: hidden;}
+      .ecx-viewport {width: 100%;overflow: hidden;}
+      .ecx-track { display: flex;align-items: center; transition: transform 0.5s ease;will-change: transform;}
+      .ecx-slide{flex:0 0 82%; margin:0 1.2%;box-sizing:border-box;}
+      .ecx-card img{aspect-ratio:16/9;overflow:hidden;border-radius: 20px;}
+      .ecx-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:10;width:38px;height:38px;border:none; border-radius: 50%;background:white;font-size:24px;cursor:pointer;}}
+      .ecx-arrow.ecx-prev{left:1%}
+      .ecx-arrow.ecx-next{right:1%}
+      .ecx-dots {display: flex;justify-content: center;align-items: center;gap: 8px;margin-top: 14px;}
+      .ecx-dots button {appearance: none;-webkit-appearance: none; width: 8px !important;height: 8px !important;min-width: 8px !important;
+        min-height: 8px !important;padding: 0 !important;margin: 0 !important;border: none !important; 
+        border-radius: 50% !important;background: #c8c8c8;box-shadow: none;cursor: pointer;}
+      .ecx-dots button.active { width: 8px !important; height: 8px !important; background: #222;}
+
+       .start-notice{
+        margin-top:14px;
+        font-size:13px;
+        padding:10px 12px;
+      }
+      .start-notice-title{
+        font-size:16px; /* スタート(20px)より小さい */
+      }
+      .crowdworks-notice {margin-top: 3em;}
+
+      .answer-code {margin-top: 1em;font-weight: bold;}
+    }
+  </style>
+</head>
+<body>
+  <div id="points-display">残高: <strong id="points-num">0</strong> pt</div>
+
+  <div class="wrap" id="app">
+    <header>
+      <h1>Facsan online</h1>
+    </header>
+
+    <main>
+      <section id="view-start" class="view active">
+        <div class="start-area">
+          <div class="ecx-carousel" id="ecx-carousel">
+            <button class="ecx-arrow ecx-prev" id="ecx-prev" aria-label="前へ">‹</button>
+            <div class="ecx-viewport" id="ecx-viewport">
+              <div class="ecx-track" id="ecx-track">
+
+                <div class="ecx-slide"><div class="ecx-card"><img src="images/gazou1.jpg" alt="カルーセル画像1"></div></div>
+                <div class="ecx-slide"><div class="ecx-card"><img src="images/gazou2.jpg" alt="カルーセル画像2"></div></div>
+                <div class="ecx-slide"><div class="ecx-card"><img src="images/gazou3.jpg" alt="カルーセル画像3"></div></div>
+              </div>
+            </div>
+            <button class="ecx-arrow ecx-next" id="ecx-next" aria-label="次へ">›</button>
+            <div class="ecx-dots" id="ecx-dots"></div>
+          </div>
+          <button id="start-btn" type="button">スタート</button>
+            <!-- 追加: 注意事項 -->
+          <div class="start-notice" aria-label="注意事項">
+            <p class="start-notice-title">♦注意事項♦</p>
+            <ul>
+              <li>このサイト上で買い物をしてください。</li>
+              <li>スタートボタンを押すとこのサイト上でのみ使えるポイントを付与します。</li>
+              <li>このサイトは架空のショッピングサイトであり、商品を購入しても発送はされず、金銭も要求されません。</li>
+              <li>付与されたポイント内で買い物をしてください。商品はいくつ選択しても構いません。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-shop" class="view">
+        <h2>カテゴリ</h2>
+        <div class="categories" id="categories"></div>
+        <div style="height:280px"></div>
+
+        <section class="cart-view" id="cart-view" style="display:none;">
+          <h3>カート内容</h3>
+          <div class="cart-list" id="cart-list"></div>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;">
+            <div>合計: <strong id="cart-total">0</strong> pt</div>
+            <div>残高: <strong id="cart-points">0</strong> pt</div>
+          </div>
+          <div class="cart-actions">
+            <button id="back-to-shop-btn" class="back-btn" type="button">選びなおす</button>
+            <button id="to-checkout-btn" type="button">支払いへ進む</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="view-checkout" class="view">
+        <h2>支払い情報入力</h2>
+        <div class="panel">
+          <h3>顧客基本情報</h3>
+          <div class="field">
+            <label>性別</label>
+            <div class="radio-row">
+              <label><input type="radio" name="gender" value="男"> 男</label>
+              <label><input type="radio" name="gender" value="女"> 女</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="age-input">年齢（半角数字）</label>
+            <input id="age-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例: 21">
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>今回カートに入れた商品一覧</h3>
+          <div id="checkout-items"></div>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;">
+            <div>合計: <strong id="checkout-total">0</strong> pt</div>
+            <div>残高: <strong id="checkout-remain">0</strong> pt</div>
+          </div>
+        </div>
+
+        <button id="pay-btn" type="button" style="width:100%;font-size:16px;">支払う</button>
+      </section>
+
+      <section id="view-survey" class="view">
+        <h2>購入後アンケート</h2>
+
+        <div class="sd-block">
+          <div class="sd-title">Q1：現在あなたがいる環境は気温・湿度面でどれくらい不快ですか？（不快環境：蒸し暑いなど）</div>
+          <div class="sd-scale-wrap" data-mobile-lr="非常に快適 ←→ 非常に不快">
+            <div class="sd-left">非常に快適</div>
+            <div class="sd-scale" id="q1-scale"></div>
+            <div class="sd-right">非常に不快</div>
+          </div>
+        </div>
+
+        <div class="sd-block">
+          <div class="sd-title">Q2：今回の商品選択にあてはまるものにチェックをしてください</div>
+          <div id="q2-group"></div>
+        </div>
+
+        <div class="sd-block">
+          <div class="sd-title">Q3：普段、買い物するときはどのように商品を選びますか。あてはまるものにチェックをしてください</div>
+          <div id="q3-group"></div>
+        </div>
+
+        <div class="sd-block">
+          <div class="sd-title">Q4：今回の商品選択の満足度を回答してください。</div>
+          <div class="sd-scale-wrap" data-mobile-lr="全く満足していない ←→ 非常に満足している">
+            <div class="sd-left">全く満足していない</div>
+            <div class="sd-scale" id="q4-scale"></div>
+            <div class="sd-right">非常に満足している</div>
+          </div>
+        </div>
+
+        <button id="submit-survey" type="button">回答を送信</button>
+        
+      </section>
+
+      <div class="final-msg" id="final-msg">回答を送信しました。ご協力ありがとうございました。
+         <div class="crowdworks-notice">
+          <p class="start-notice-title">♦クラウドワークスから回答の方♦</p>
+
+          <p>クラウドワークスの入力画面に以下の英数字を入力してください。</p>
+
+          <p class="answer-code">E27fiDh7</p>
+         </div>
+      </div>
+       
+    </main>
+
+  </div>
+
+  <div class="points-panel" id="points-panel">
+    <div>獲得ポイント <strong id="points-amount">1500</strong> pt
+      <button class="close" id="close-points" aria-label="閉じる">✕</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="detail-modal" role="dialog" aria-modal="true" tabindex="-1">
+      <button id="detail-close" style="float:right;background:transparent;color:#111;border:none;font-weight:700;cursor:pointer;">✕</button>
+      <div class="modal-image" id="modal-image">画像</div>
+      <h3 id="detail-name"></h3>
+      <p id="detail-desc">商品の詳細説明</p>
+      <div class="price">価格: <span id="detail-price">0</span> 円</div>
+      <div class="points-status" id="points-status">現在のポイント残高: 0pt</div>
+      <div class="quantity-selector">
+        <button id="qty-minus" type="button">−</button>
+        <span id="qty-display">1</span>
+        <button id="qty-plus" type="button">＋</button>
+      </div>
+      <div class="modal-actions">
+        <button id="detail-back-btn" class="back-btn" type="button">戻る</button>
+        <button id="add-to-cart-btn" type="button">カートに追加</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="cart-floating" class="cart-btn" type="button">カートを確認する</button>
+
+  <script>
+    const CATEGORIES = [
+      { id:'kitchen', name:'キッチン用品', imageUrl:'kitchen.jpg', subcategories:[
+        { name:'皿・プレート', imageUrl:'sarap.jpg', products:[
+          { name:'皿', price:330, imageUrl:'sara.jpg' },
+          { name:'プレート', price:550, imageUrl:'prate.jpg' },
+          { name:'お子様プレート', price:550, imageUrl:'kidsp.jpg' }
+        ]},
+        { name:'グラス・カップ', imageUrl:'glass.jpg', products:[
+          { name:'マグカップ（ホワイト）', price:330, imageUrl:'magw.jpg' },
+          { name:'マグカップ（ブラック）', price:330, imageUrl:'magb.jpg' },
+          { name:'透明グラス', price:330, imageUrl:'glass.jpg' },
+          { name:'ワイングラス', price:660, imageUrl:'wine.jpg' }
+        ]},
+        { name:'箸・カトラリー', imageUrl:'chopcat.jpg', products:[
+          { name:'箸（4膳）', price:330, imageUrl:'chop.jpg' },
+          { name:'箸（2膳）', price:160, imageUrl:'chop.jpg' },
+          { name:'カトラリーセット1人分', price:330, imageUrl:'cat.jpg' }
+        ]},
+        { name:'ランチボックス', imageUrl:'lunch.jpg', products:[
+          { name:'ランチボックス', price:550, imageUrl:'lunchb.jpg' },
+          { name:'2段ランチボックス', price:770, imageUrl:'lunch2.jpg' },
+          { name:'わっぱ風ランチボックス', price:770, imageUrl:'wappa.jpg' }
+        ]},
+        { name:'水筒・タンブラー', imageUrl:'water.jpg', products:[
+          { name:'水筒（ホワイト）', price:880, imageUrl:'suitow.jpg' },
+          { name:'水筒（ブラック）', price:880, imageUrl:'suitob.jpg' },
+          { name:'タンブラー（ホワイト）', price:660, imageUrl:'tamw.jpg' },
+          { name:'タンブラー（ブラック）', price:660, imageUrl:'tamb.jpg' }
+        ]},
+        { name:'容器・ボウル', imageUrl:'bowl.jpg', products:[
+          { name:'保存容器', price:660, imageUrl:'hyouki.jpg' },
+          { name:'ボウル', price:330, imageUrl:'bowl.jpg' },
+          { name:'ざる', price:330, imageUrl:'zaru.jpg' }
+        ]},
+        { name:'コースター・ランチョンマット', imageUrl:'coasterlunch.jpg', products:[
+          { name:'カップコースター', price:330, imageUrl:'coster.jpg' },
+          { name:'ランチョンマット', price:330, imageUrl:'lunchm.jpg' }
+        ]}
+      ]},
+      { id:'shuno', name:'収納', imageUrl:'shuno.jpg', subcategories:[
+        { name:'収納ボックス', imageUrl:'tool.jpg', products:[
+          { name:'S', price:550, imageUrl:'box.jpg' },
+          { name:'M', price:880, imageUrl:'box.jpg' },
+          { name:'L', price:1320, imageUrl:'box.jpg' }
+        ]},
+        { name:'バスケット・カゴ', imageUrl:'tool.jpg', products:[
+          { name:'バスケット', price:1320, imageUrl:'busket.jpg' },
+          { name:'カゴ', price:1100, imageUrl:'kago.jpg' }
+        ]},
+        { name:'ラック', imageUrl:'tool.jpg', products:[
+          { name:'ラック（ホワイト）', price:330, imageUrl:'luckw.jpg' },
+          { name:'ラック（ブラック）', price:330, imageUrl:'luckb.jpg' }
+        ]},
+        { name:'ハンガー', imageUrl:'tool.jpg', products:[
+          { name:'ハンガー（4本）', price:550, imageUrl:'hung4.jpg' },
+          { name:'ハンガー（6本）', price:660, imageUrl:'hung6.jpg' },
+          { name:'ピンチハンガー（ピンチ6つ）', price:700, imageUrl:'phung.jpg' },
+          { name:'ピンチハンガー（ピンチ8つ）', price:800, imageUrl:'phung.jpg' }
+        ]},
+        { name:'アクセサリートレー', imageUrl:'tool.jpg', products:[
+          { name:'アクササリートレー（ホワイト）', price:330, imageUrl:'torew.jpg' },
+          { name:'アクセサリートレー（ウッド）', price:330, imageUrl:'torewo.jpg' }
+        ]}
+      ]},
+      { id:'interia', name:'インテリア', imageUrl:'interia.jpg', subcategories:[
+        { name:'カーテン', imageUrl:'tool.jpg', products:[
+          { name:'ミニカーテン（ホワイト）', price:550, imageUrl:'katenw.jpg' },
+          { name:'ミニカーテン（グレー）', price:550, imageUrl:'kateng.jpg' }
+        ]},
+        { name:'時計', imageUrl:'tool.jpg', products:[
+          { name:'時計（ホワイト）', price:770, imageUrl:'tokeiw.jpg' },
+          { name:'時計（ブラック）', price:770, imageUrl:'tokeib.jpg' }
+        ]}
+      ]},
+      { id:'fashion', name:'ファッション雑貨・小物', imageUrl:'fashion.jpg', subcategories:[
+        { name:'ファッション雑貨', imageUrl:'tool.jpg', products:[
+          { name:'ベルト', price:330, imageUrl:'belt.jpg' },
+          { name:'サングラス', price:1100, imageUrl:'sunglass.jpg' },
+          { name:'めがね', price:550, imageUrl:'megane.jpg' },
+          { name:'帽子', price:1320, imageUrl:'cap.jpg' },
+          { name:'マスク', price:330, imageUrl:'mask.jpg' }
+        ]},
+        { name:'傘', imageUrl:'tool.jpg', products:[
+          { name:'傘', price:2420, imageUrl:'kasa.jpg' },
+          { name:'財布', price:330, imageUrl:'saihu.jpg' },
+          { name:'コインケース', price:330, imageUrl:'coin.jpg' },
+          { name:'ハンカチ', price:330, imageUrl:'hankachi.jpg' },
+          { name:'ポーチ', price:660, imageUrl:'pouch.jpg' },
+          { name:'パスケース', price:330, imageUrl:'passcase.jpg' }
+        ]}
+      ]},
+      { id:'device', name:'家電・デバイス', imageUrl:'device.jpg', subcategories:[
+        { name:'電池', imageUrl:'tool.jpg', products:[
+          { name:'単3', price:140, imageUrl:'tan3.jpg' },
+          { name:'単４', price:140, imageUrl:'tan3.jpg' },
+          { name:'ボタン電池', price:130, imageUrl:'botan.jpg' }
+        ]},
+        { name:'照明', imageUrl:'tool.jpg', products:[
+          { name:'ライト（ホワイト）', price:330, imageUrl:'lightw.jpg' },
+          { name:'ライト（ブラック）', price:330, imageUrl:'lightb.jpg' },
+          { name:'ランプシェード', price:880, imageUrl:'lampshade.jpg' }
+        ]},
+        { name:'イヤホン', imageUrl:'tool.jpg', products:[
+          { name:'有線イヤホン（ホワイト）', price:550, imageUrl:'yusenw.jpg' },
+          { name:'Bluetoothイヤホン（ホワイト）', price:2200, imageUrl:'bluetoothw.jpg' },
+          { name:'ヘッドフォン（ホワイト）', price:3850, imageUrl:'headphonew.jpg' }
+        ]}
+      ]}
+    ];
+
+    const PRODUCT_DESCRIPTIONS = { '皿':'毎日の食卓をやさしく彩る、シンプルで使いやすいプレート。','プレート':'料理をきれいに引き立てる、使い勝手のよい上品なプレート。','お子様プレート':'かわいらしいデザインで、毎日の食事が楽しくなるお子様向けプレート。','マグカップ（ホワイト）':'やわらかなホワイトカラーが暮らしになじむ、シンプルなマグカップ。','マグカップ（ブラック）':'落ち着いたブラックカラーが大人っぽい、洗練されたマグカップ。','透明グラス':'飲み物の色まで楽しめる、すっきりとした透明感のあるグラス。','ワイングラス':'いつもの時間をちょっと特別にしてくれる、上品なワイングラス。','箸（4膳）':'食卓に取り入れやすい、色違いで楽しめるシンプルな4膳セット。','箸（2膳）':'毎日の食卓にちょうどいい、使いやすい2膳セット。','カトラリーセット1人分':'スプーン・フォークなどをまとめた、毎日の食事に便利なセット。','ランチボックス':'コンパクトで持ち運びやすい、毎日のランチにぴったりのお弁当箱。','2段ランチボックス':'たっぷり入って使い分けもできる、便利な2段タイプのお弁当箱。','わっぱ風ランチボックス':'木のぬくもりを感じるデザインで、ランチタイムをおしゃれに演出。','水筒（ホワイト）':'すっきりとしたホワイトカラーで、毎日の持ち歩きにおすすめの水筒。','水筒（ブラック）':'シックなブラックカラーが魅力の、スタイリッシュなマイボトル。','タンブラー（ホワイト）':'どんなシーンにも合わせやすい、清潔感のあるホワイトタンブラー。','タンブラー（ブラック）':'大人っぽいブラックカラーで、持つだけで気分が引き締まるタンブラー。','保存容器':'食材の保存や作り置きに便利な、すっきり収納できる保存容器。','ボウル':'サラダや料理の盛り付けに使いやすく、毎日の食卓に便利なボウル。','ざる':'野菜や麺類の水切りに活躍する、使いやすく扱いやすいキッチンアイテム。','カップコースター':'グラスやカップの下に敷くだけで、テーブルをかわいく演出するコースター。','ランチョンマット':'食卓に置くだけで、いつもの食事をおしゃれに見せてくれるランチョンマット。','S':'小物の整理にちょうどいい、コンパクトで使いやすい収納ボックス。','M':'衣類や雑貨などをすっきりまとめられる、使い勝手のよい収納ボックス。','L':'かさばるアイテムもしっかり収納できる、頼れる大容量ボックス。','バスケット':'見せる収納にもぴったりな、暮らしに自然になじむバスケット。','カゴ':'小物やタオルなどをまとめて、すっきり収納できるナチュラルなカゴ。','ラック（ホワイト）':'明るいホワイトカラーで、お部屋をすっきり見せてくれる収納ラック。','ラック（ブラック）':'シックなブラックカラーが空間を引き締める、スタイリッシュなラック。','ハンガー（4本）':'クローゼットをすっきり整える、使いやすいハンガー4本セット。','ハンガー（6本）':'衣類をまとめて整理できる、毎日の収納に便利なハンガー6本セット。','ピンチハンガー（ピンチ6つ）':'靴下やハンカチなどの小物干しに便利な、コンパクトなピンチハンガー。','ピンチハンガー（ピンチ8つ）':'小物をまとめて干せる、毎日の洗濯に便利なピンチハンガー。','アクササリートレー（ホワイト）':'アクセサリーをかわいく見せながら整理できる、上品なホワイトトレー。','アクセサリートレー（ウッド）':'木のぬくもりを感じるデザインで、大切なアクセサリーをおしゃれに収納。','ミニカーテン（ホワイト）':'やわらかなホワイトカラーで、お部屋を明るく整えるミニカーテン。','ミニカーテン（グレー）':'やわらかなグレーカラーで、お部屋をシックに整えるミニカーテン。','時計（ホワイト）':'すっきりとしたデザインで、どんなお部屋にも合わせやすい壁掛け時計。','時計（ブラック）':'シンプルなブラックカラーが空間のアクセントになるスタイリッシュな時計。','ベルト':'コーディネートのアクセントにも使える、シンプルで合わせやすいベルト。','サングラス':'いつものコーディネートに取り入れやすい、洗練されたデザインのサングラス。','めがね':'デイリーに使いやすく、顔まわりをすっきり見せてくれるシンプルなめがね。','帽子':'いつものスタイルにプラスするだけで、おしゃれに決まるデイリーハット。','マスク':'毎日使いやすく、顔まわりをすっきり見せてくれるシンプルなマスク。','傘':'雨の日も気分を上げてくれる、毎日持ち歩きたくなるおしゃれな傘。','財布':'コンパクトながら使いやすく、毎日のお出かけに寄り添うシンプルな財布。','コインケース':'小銭をすっきり収納できる、バッグに入れて持ち歩きやすいコインケース。','ハンカチ':'バッグに一枚入れておきたい、毎日使える上品なハンカチ。','ポーチ':'コスメや小物をまとめて収納できる、バッグの中を整える便利なポーチ。','パスケース':'毎日の通勤・通学に使いやすい、すっきりとしたデザインのパスケース。','単3':'リモコンやおもちゃなど、毎日の暮らしに欠かせない定番の単3電池。','単４':'小型のリモコンやデバイスにも使いやすい、便利な単4電池。','ボタン電池':'時計や小型機器などに使える、ストックしておくと便利なボタン電池。','ライト（ホワイト）':'やわらかなホワイトカラーで、お部屋を明るく彩るコンパクトライト。','ライト（ブラック）':'シックなブラックカラーがインテリアのアクセントになるミニライト。','ランプシェード':'いつものお部屋にやさしい雰囲気をプラスする、インテリア性の高いランプシェード。','有線イヤホン（ホワイト）':'シンプルなホワイトカラーで、日常使いしやすいベーシックな有線イヤホン。','Bluetoothイヤホン（ホワイト）':'ワイヤレスで身軽に楽しめる、毎日の音楽時間にぴったりのイヤホン。','ヘッドフォン（ホワイト）':'存在感のあるデザインで、音楽時間をおしゃれに楽しめるヘッドフォン。' };
+
+    const INITIAL_POINTS = 1500;
+    const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyz9B50dQASG2Zd2-PvGf0D_I4oRQSrYC3l35NUzE3BLxpKzVT5rWC7Or7zFYBVkrK8/exec';
+    const ENABLE_SHEET_SYNC = Boolean(SHEET_ENDPOINT && SHEET_ENDPOINT.startsWith('https://'));
+
+    const experimentData = { participant_id:(crypto?.randomUUID ? crypto.randomUUID() : `id-${Date.now()}`), start_time_iso:null, close_points_time_iso:null, pay_time_iso:null, total_time_ms:null, events:[], cart:[], purchases:[], cart_history:[], product_detail_count:0, click_count:0, customer:{}, survey:{} };
+
+    const views = { start:document.getElementById('view-start'), shop:document.getElementById('view-shop'), checkout:document.getElementById('view-checkout'), survey:document.getElementById('view-survey') };
+    const pointsDisplay = document.getElementById('points-display');
+    const pointsNum = document.getElementById('points-num');
+    const cartPointsDisp = document.getElementById('cart-points');
+    const pointsPanel = document.getElementById('points-panel');
+    const closePointsBtn = document.getElementById('close-points');
+    const pointsAmount = document.getElementById('points-amount');
+    const startBtn = document.getElementById('start-btn');
+    const categoriesDiv = document.getElementById('categories');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const detailModal = document.getElementById('detail-modal');
+    const modalImage = document.getElementById('modal-image');
+    const detailName = document.getElementById('detail-name');
+    const detailDesc = document.getElementById('detail-desc');
+    const detailPrice = document.getElementById('detail-price');
+    const pointsStatus = document.getElementById('points-status');
+    const qtyDisplay = document.getElementById('qty-display');
+    const qtyMinus = document.getElementById('qty-minus');
+    const qtyPlus = document.getElementById('qty-plus');
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    const detailCloseBtn = document.getElementById('detail-close');
+    const detailBackBtn = document.getElementById('detail-back-btn');
+    const cartFloating = document.getElementById('cart-floating');
+    const cartView = document.getElementById('cart-view');
+    const cartList = document.getElementById('cart-list');
+    const cartTotal = document.getElementById('cart-total');
+    const backToShopBtn = document.getElementById('back-to-shop-btn');
+    const toCheckoutBtn = document.getElementById('to-checkout-btn');
+    const checkoutItems = document.getElementById('checkout-items');
+    const checkoutTotal = document.getElementById('checkout-total');
+    const checkoutRemain = document.getElementById('checkout-remain');
+    const payBtn = document.getElementById('pay-btn');
+    const submitSurveyBtn = document.getElementById('submit-survey');
+    const finalMsg = document.getElementById('final-msg');
+
+    let pointsOwned = 0, hasStarted = false, currentProduct = null, currentProductPrice = 0, currentQty = 1;
+    let canShowCartButton = false, cartButtonAlreadyUsed = false;
+
+    function nowISO(){ return new Date().toISOString(); }
+    function pushEvent(type, detail={}){ experimentData.events.push({type, ts:nowISO(), detail}); }
+    function showView(name){
+      Object.values(views).forEach(v => v.classList.remove('active'));
+      views[name].classList.add('active');
+      window.scrollTo({top:0,behavior:'smooth'});
+      pointsDisplay.style.display = (name === 'start') ? 'none' : 'block';
+    }
+    function getProductPrice(name){
+      for (const c of CATEGORIES) for (const s of c.subcategories||[]) for (const p of s.products||[]) if (p.name===name) return p.price;
+      return 0;
+    }
+    function calcCartTotal(){ return experimentData.cart.reduce((sum,n)=>sum+getProductPrice(n),0); }
+
+    function make7Scale(containerId, qName){
+      const root = document.getElementById(containerId); root.innerHTML = '';
+      for(let i=1;i<=7;i++){ const label = document.createElement('label'); label.innerHTML = `<input type="radio" name="${qName}" value="${i}"><span>${i}</span>`; root.appendChild(label); }
+    }
+    function makeMultiScale(parentId, defs, prefix){
+      const parent = document.getElementById(parentId); parent.innerHTML = '';
+      defs.forEach((d, idx) => {
+        const block = document.createElement('div'); block.style.margin = '12px 0';
+        const mobileText = `${d.left} ←→ ${d.right}`;
+        block.innerHTML = `<div style="font-weight:700;margin-bottom:6px;">${prefix}-${idx+1}：${d.title}</div>
+          <div class="sd-scale-wrap" data-mobile-lr="${mobileText}">
+            <div class="sd-left">${d.left}</div><div class="sd-scale" id="${prefix.toLowerCase()}_${idx+1}"></div><div class="sd-right">${d.right}</div>
+          </div>`;
+        parent.appendChild(block);
+        const scale = block.querySelector('.sd-scale');
+        for(let i=1;i<=7;i++){ const label = document.createElement('label'); label.innerHTML = `<input type="radio" name="${prefix.toLowerCase()}_${idx+1}" value="${i}"><span>${i}</span>`; scale.appendChild(label); }
+      });
+    }
+
+    /* ===== カルーセルJS（順番と幅計算を修正） ===== */
+    function initCarousel(){
+      const carousel = document.getElementById('ecx-carousel');
+      const viewport = document.getElementById('ecx-viewport');
+      const track = document.getElementById('ecx-track');
+      const prevBtn = document.getElementById('ecx-prev');
+      const nextBtn = document.getElementById('ecx-next');
+      const dotsWrap = document.getElementById('ecx-dots');
+
+      const originals = Array.from(track.children);
+      const originalCount = originals.length;
+      if (originalCount < 2) return;
+
+      // clone (last + originals + first)
+      const firstClone = originals[0].cloneNode(true);
+      const lastClone  = originals[originalCount - 1].cloneNode(true);
+      track.insertBefore(lastClone, originals[0]);
+      track.appendChild(firstClone);
+
+      const slides = Array.from(track.children);
+      let current = 1; // first real slide
+      let timer = null;
+      let isAnimating = false;
+
+      function slideMetrics(index){
+        const el = slides[index];
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        const ml = parseFloat(style.marginLeft) || 0;
+        const mr = parseFloat(style.marginRight) || 0;
+        return { w: rect.width, outer: rect.width + ml + mr };
+      }
+
+      function getTranslateFor(index){
+        // 実幅(82% + 左右余白)に一致するよう「累積 outer」で計算
+        let leftSum = 0;
+        for(let i=0;i<index;i++){
+          leftSum += slideMetrics(i).outer;
+        }
+        const m = slideMetrics(index);
+        const slideCenterX = leftSum + (m.outer / 2);
+        const viewportCenterX = viewport.clientWidth / 2;
+        return viewportCenterX - slideCenterX;
+      }
+
+      function realIndexFromCurrent(){
+        if (current === 0) return originalCount - 1;
+        if (current === slides.length - 1) return 0;
+        return current - 1;
+      }
+
+      function updateActive(){
+        slides.forEach((s, i)=>s.classList.toggle('ecx-active', i===current));
+        const real = realIndexFromCurrent();
+        Array.from(dotsWrap.children).forEach((d,i)=>d.classList.toggle('ecx-active', i===real));
+      }
+
+      function centerCurrent(animate=true){
+        track.style.transition = animate ? 'transform .55s ease' : 'none';
+        track.style.transform = `translateX(${getTranslateFor(current)}px)`;
+        updateActive();
+      }
+
+      function renderDots(){
+        dotsWrap.innerHTML = '';
+        for(let i=0;i<originalCount;i++){
+          const d = document.createElement('button');
+          d.className = 'ecx-dot';
+          d.type = 'button';
+          d.setAttribute('aria-label', `${i+1}枚目へ`);
+          d.addEventListener('click', ()=>{
+            if(isAnimating) return;
+            moveTo(i+1, true);
+          });
+          dotsWrap.appendChild(d);
+        }
+      }
+
+      function moveTo(index, manual=false){
+        if(isAnimating) return;
+        isAnimating = true;
+        current = index;
+        centerCurrent(true);
+        if(manual) restartAuto();
+      }
+
+      function next(manual=false){ moveTo(current + 1, manual); }
+      function prev(manual=false){ moveTo(current - 1, manual); }
+
+      track.addEventListener('transitionend', ()=>{
+        // ② 順番保証: 1→2→3→1→2→3...
+        if(current === slides.length - 1){
+          current = 1;
+          centerCurrent(false);
+        }else if(current === 0){
+          current = originalCount;
+          centerCurrent(false);
+        }
+        isAnimating = false;
+      });
+
+      function startAuto(){ stopAuto(); timer = setInterval(()=>next(false), 4000); }
+      function stopAuto(){ if(timer){ clearInterval(timer); timer = null; } }
+      function restartAuto(){ startAuto(); }
+
+      prevBtn.addEventListener('click', ()=>prev(true));
+      nextBtn.addEventListener('click', ()=>next(true));
+
+      carousel.addEventListener('mouseenter', stopAuto);
+      carousel.addEventListener('mouseleave', startAuto);
+      carousel.addEventListener('touchstart', stopAuto, {passive:true});
+      carousel.addEventListener('touchend', startAuto, {passive:true});
+
+      window.addEventListener('resize', ()=>centerCurrent(false));
+
+      renderDots();
+      centerCurrent(false);
+      startAuto();
+    }
+
+    (function init(){
+      pointsNum.textContent = 0;
+      cartPointsDisp.textContent = 0;
+      pointsAmount.textContent = INITIAL_POINTS;
+      make7Scale('q1-scale','q1');
+      make7Scale('q4-scale','q4');
+      makeMultiScale('q2-group',[
+        {title:'.',left:'いろいろ考えて決めた',right:'なんとなく決めた'},
+        {title:'.',left:'自制心をもって決めた',right:'欲求に従って決めた'},
+        {title:'.',left:'慎重に決めた',right:'直感的に決めた'},
+        {title:'.',left:'理性的に決めた',right:'感情で決めた'},
+        {title:'.',left:'論理的に考えて決めた',right:'気持ちで決めた'}
+      ],'Q2');
+      makeMultiScale('q3-group',[
+        {title:'.',left:'いろいろ考えて決める',right:'なんとなく決める'},
+        {title:'.',left:'自制心をもって決める',right:'欲求に従って決める'},
+        {title:'.',left:'慎重に决める',right:'直感的に决める'},
+        {title:'.',left:'理性的に决める',right:'感情で决める'},
+        {title:'.',left:'論理的に考えて决める',right:'気持ちで决める'}
+      ],'Q3');
+      showView('start');
+      initCarousel();
+    })();
+
+    startBtn.addEventListener('click',()=>{
+      if(hasStarted) return;
+      hasStarted = true;
+      experimentData.start_time_iso = nowISO();
+      pointsOwned = INITIAL_POINTS;
+      pointsNum.textContent = pointsOwned;
+      cartPointsDisp.textContent = pointsOwned;
+      pointsPanel.style.display = 'flex';
+      renderCategories();
+      showView('shop');
+      pushEvent('experiment_start');
+      document.addEventListener('click', ()=>experimentData.click_count++);
+    });
+
+    closePointsBtn.addEventListener('click',()=>{
+      pointsPanel.style.display = 'none';
+      experimentData.close_points_time_iso = nowISO();
+      pushEvent('points_panel_closed');
+      canShowCartButton = true;
+      cartButtonAlreadyUsed = false;
+      cartFloating.style.display = 'block';
+    });
+
+    function renderCategories(){
+      categoriesDiv.innerHTML = '';
+      CATEGORIES.forEach(cat=>{
+        const card = document.createElement('div');
+        card.className = 'cat-card';
+        card.innerHTML = `<div class="cat-image"></div><div class="cat-title"><span>${cat.name}</span><span>▶</span></div><div class="cat-products"></div>`;
+        const img = card.querySelector('.cat-image');
+        if(cat.imageUrl) img.style.backgroundImage = `url('images/${cat.imageUrl}')`;
+
+        const prodDiv = card.querySelector('.cat-products');
+        (cat.subcategories||[]).forEach(sub=>{
+          const t = document.createElement('div');
+          t.style.fontWeight='700'; t.style.margin='4px 0 6px'; t.textContent = sub.name;
+          prodDiv.appendChild(t);
+
+          (sub.products||[]).forEach(p=>{
+            const row = document.createElement('div');
+            row.className='product-item';
+            row.innerHTML = `<div>${p.name} (${p.price}円)</div>`;
+            const r = document.createElement('div');
+            const btn = document.createElement('button');
+            btn.type='button'; btn.textContent='詳細';
+            btn.addEventListener('click',(e)=>{ e.stopPropagation(); openDetail(p); });
+            r.appendChild(btn);
+            row.appendChild(r);
+            prodDiv.appendChild(row);
+          });
+        });
+
+        card.addEventListener('click',()=>{ prodDiv.style.display = (prodDiv.style.display==='block') ? 'none' : 'block'; });
+        categoriesDiv.appendChild(card);
+      });
+    }
+
+    function openDetail(p){
+      currentProduct = p.name;
+      currentProductPrice = p.price;
+      currentQty = 1;
+      qtyDisplay.textContent = 1;
+      detailName.textContent = p.name;
+      detailDesc.textContent = PRODUCT_DESCRIPTIONS[p.name] || `${p.name} の詳細情報です。`;
+      detailPrice.textContent = p.price;
+      pointsStatus.textContent = `現在のポイント残高: ${pointsOwned}pt`;
+      addToCartBtn.textContent = `カートに追加（${p.price}円）`;
+      if(p.imageUrl){ modalImage.style.backgroundImage = `url('images/${p.imageUrl}')`; modalImage.textContent=''; }
+      else { modalImage.style.backgroundImage = ''; modalImage.textContent='画像'; }
+      experimentData.product_detail_count++;
+      pushEvent('product_detail_open',{product:p.name});
+      modalBackdrop.style.display='flex';
+      detailModal.focus();
+    }
+    function closeDetail(){ if(currentProduct) pushEvent('product_detail_close',{product:currentProduct}); currentProduct = null; modalBackdrop.style.display='none'; }
+
+    qtyMinus.addEventListener('click',()=>{
+      if(currentQty>1){ currentQty--; qtyDisplay.textContent=currentQty; addToCartBtn.textContent = `カートに追加（${currentProductPrice*currentQty}円）`; }
+    });
+    qtyPlus.addEventListener('click',()=>{
+      currentQty++; qtyDisplay.textContent=currentQty; addToCartBtn.textContent = `カートに追加（${currentProductPrice*currentQty}円）`;
+    });
+
+    addToCartBtn.addEventListener('click',()=>{
+      if(!currentProduct) return;
+      const total = currentProductPrice*currentQty;
+      if(pointsOwned < total){ alert('ポイントが不足しています。'); return; }
+      pointsOwned -= total;
+      for(let i=0;i<currentQty;i++) experimentData.cart.push(currentProduct);
+      experimentData.cart_history.push({action:'add',name:currentProduct,price:total,remaining_points:pointsOwned,ts:nowISO()});
+      pointsNum.textContent = pointsOwned; cartPointsDisp.textContent = pointsOwned;
+      pointsStatus.textContent = `現在のポイント残高: ${pointsOwned}pt`;
+      refreshCartUI();
+      alert(`${currentProduct} を ${currentQty} 個カートに追加しました。\n残りポイント：${pointsOwned}pt`);
+      closeDetail();
+      pushEvent('cart_add',{product:currentProduct,qty:currentQty,total});
+    });
+
+    detailCloseBtn.addEventListener('click',closeDetail);
+    detailBackBtn.addEventListener('click',closeDetail);
+    modalBackdrop.addEventListener('click',(e)=>{ if(e.target===modalBackdrop) closeDetail(); });
+
+    function refreshCartUI(){
+      cartList.innerHTML = '';
+      if(experimentData.cart.length===0){
+        cartList.innerHTML = '<div>カートに商品がありません。</div>';
+      }else{
+        experimentData.cart.forEach((name,idx)=>{
+          const row = document.createElement('div');
+          row.className = 'cart-row';
+          row.innerHTML = `<div>${name}</div>`;
+          const right = document.createElement('div');
+          const del = document.createElement('button');
+          del.type='button'; del.textContent='削除';
+          del.addEventListener('click',()=>{
+            const price = getProductPrice(name);
+            pointsOwned += price;
+            experimentData.cart.splice(idx,1);
+            experimentData.cart_history.push({action:'remove',name,price,remaining_points:pointsOwned,ts:nowISO()});
+            pointsNum.textContent = pointsOwned; cartPointsDisp.textContent = pointsOwned;
+            refreshCartUI();
+          });
+          right.appendChild(del); row.appendChild(right); cartList.appendChild(row);
+        });
+      }
+      cartTotal.textContent = calcCartTotal();
+      cartPointsDisp.textContent = pointsOwned;
+    }
+
+    cartFloating.addEventListener('click',()=>{
+      if(!canShowCartButton || cartButtonAlreadyUsed) return;
+      cartButtonAlreadyUsed = true;
+      cartFloating.style.display='none';
+      cartView.style.display='block';
+      refreshCartUI();
+      cartView.scrollIntoView({behavior:'smooth'});
+      pushEvent('open_cart_view');
+    });
+
+    backToShopBtn.addEventListener('click',()=>{
+      cartView.style.display='none';
+      cartFloating.style.display='none';
+      pushEvent('back_to_shop');
+    });
+
+    toCheckoutBtn.addEventListener('click',()=>{
+      if(experimentData.cart.length===0){ alert('カートに商品がありません'); return; }
+      renderCheckout();
+      showView('checkout');
+      cartFloating.style.display='none';
+      pushEvent('open_checkout');
+    });
+
+    function renderCheckout(){
+      const tally = {};
+      experimentData.cart.forEach(n=>{ tally[n] = (tally[n]||0)+1; });
+      checkoutItems.innerHTML = '';
+      Object.keys(tally).forEach(name=>{
+        const div = document.createElement('div');
+        div.style.padding='6px 0';
+        div.textContent = `${name} × ${tally[name]}（${getProductPrice(name)*tally[name]}pt）`;
+        checkoutItems.appendChild(div);
+      });
+      checkoutTotal.textContent = calcCartTotal();
+      checkoutRemain.textContent = pointsOwned;
+    }
+
+    payBtn.addEventListener('click',()=>{
+      const g = document.querySelector('input[name="gender"]:checked')?.value || '';
+      const age = document.getElementById('age-input').value.trim();
+      if(!g){ alert('性別を選択してください。'); return; }
+      if(!/^[0-9]+$/.test(age)){ alert('年齢は半角数字で入力してください。'); return; }
+
+      experimentData.customer = {gender:g, age:Number(age)};
+      experimentData.purchases = experimentData.cart.slice();
+      experimentData.pay_time_iso = nowISO();
+      experimentData.total_time_ms = experimentData.close_points_time_iso
+        ? Date.parse(experimentData.pay_time_iso) - Date.parse(experimentData.close_points_time_iso)
+        : null;
+
+      pushEvent('payment_success',{ total:calcCartTotal(), purchases:experimentData.purchases, total_time_ms:experimentData.total_time_ms });
+      showView('survey');
+    });
+
+    submitSurveyBtn.addEventListener('click',()=>{
+      function rv(name){ return document.querySelector(`input[name="${name}"]:checked`)?.value || ''; }
+      const survey = {
+        q1: rv('q1'),
+        q2_1: rv('q2_1'), q2_2: rv('q2_2'), q2_3: rv('q2_3'), q2_4: rv('q2_4'), q2_5: rv('q2_5'),
+        q3_1: rv('q3_1'), q3_2: rv('q3_2'), q3_3: rv('q3_3'), q3_4: rv('q3_4'), q3_5: rv('q3_5'),
+        q4: rv('q4')
+      };
+      if(!Object.values(survey).every(v=>v!=='')){ alert('すべての項目に回答してください。'); return; }
+
+      experimentData.survey = survey;
+      experimentData.end_time_iso = nowISO();
+      pushEvent('survey_submitted',{survey});
+
+      const dataToSend = {
+        participant_id: experimentData.participant_id,
+        start_time: experimentData.start_time_iso,
+        close_points_time: experimentData.close_points_time_iso,
+        pay_time: experimentData.pay_time_iso,
+        total_time_s: experimentData.total_time_ms!=null ? Math.round(experimentData.total_time_ms/1000) : '',
+        customer_gender: experimentData.customer.gender,
+        customer_age: experimentData.customer.age,
+        purchases: experimentData.purchases.join(', '),
+        click_count: experimentData.click_count,
+        ...survey
+      };
+
+      function done(){ document.getElementById('view-survey').classList.remove('active'); finalMsg.style.display = 'block'; }
+
+      if(ENABLE_SHEET_SYNC){
+        submitSurveyBtn.disabled = true;
+        submitSurveyBtn.textContent = '送信中...';
+        fetch(SHEET_ENDPOINT,{
+          method:'POST', headers:{'Content-Type':'text/plain'},
+          body:JSON.stringify(dataToSend), mode:'no-cors'
+        }).then(done).catch(()=>{
+          alert('データ送信に失敗しました。再度お試しください。');
+          submitSurveyBtn.disabled = false; submitSurveyBtn.textContent = '回答を送信';
+        });
+      }else done();
+    });
+
+    window.addEventListener('beforeunload',()=>{
+      if(experimentData.start_time_iso && !experimentData.end_time_iso) pushEvent('unload_before_finish');
+    });
+  </script>
+</body>
+</html>
